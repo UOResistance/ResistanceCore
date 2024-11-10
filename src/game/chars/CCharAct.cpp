@@ -4441,9 +4441,13 @@ bool CChar::Death()
 			case CREID_VAMPWOMAN:
 				pszGhostName = ( fFemale ? "c_vamp_ghost_woman" : "c_vamp_ghost_man" );
 				break;
-			default:
-				pszGhostName = ( fFemale ? "c_ghost_woman" : "c_ghost_man" );
-				break;
+            case CREID_HALFELINMAN:
+            case CREID_HALFELINWOMAN:
+                pszGhostName = (fFemale ? "c_halfelin_ghost_woman" : "c_halfelin_ghost_man");
+                break;
+            default:
+                pszGhostName = (fFemale ? "c_ghost_woman" : "c_ghost_man");
+                break;
 		}
 		ASSERT(pszGhostName != nullptr);
 

@@ -275,6 +275,12 @@ void PacketObjectStatus::WriteVersionSpecific(const CClient* target, CChar* othe
 		case CREID_VAMPGHOSTWOMAN:
 			writeByte(RACETYPE_VAMPIRE);
 			break;
+        case CREID_HALFELINMAN:
+        case CREID_HALFELINWOMAN:
+        case CREID_HALFELINGHOSTMAN:
+        case CREID_HALFELINGHOSTWOMAN:
+            writeByte(RACETYPE_HALFELIN);
+            break;
 		default:
 			writeByte(RACETYPE_UNDEFINED);
 			break;

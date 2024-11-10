@@ -36,6 +36,9 @@ CREID_TYPE CChar::NPC_GetAllyGroupType(CREID_TYPE idTest) // static
 		case CREID_VAMPMAN:
 		case CREID_VAMPWOMAN:
 			return CREID_VAMPMAN;
+        case CREID_HALFELINMAN:
+        case CREID_HALFELINWOMAN:
+            return CREID_HALFELINMAN;
 
 		case CREID_OGRE:
 		case CREID_OGRE_LORD:

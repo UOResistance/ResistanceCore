@@ -3988,6 +3988,8 @@ bool CChar::OnSpellEffect( SPELL_TYPE spell, CChar * pCharSrc, int iSkillLevel, 
 					SetID( pCharDef->IsFemale() ? CREID_GARGMAN : CREID_GARGWOMAN );
 				else if (IsVampire())
 					SetID(pCharDef->IsFemale() ? CREID_VAMPMAN : CREID_VAMPWOMAN);
+                else if (IsHalfelin())
+                    SetID(pCharDef->IsFemale() ? CREID_HALFELINMAN : CREID_HALFELINWOMAN);
 				_iPrev_id = GetID();
 			}
 			break;

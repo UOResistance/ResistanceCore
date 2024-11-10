@@ -97,7 +97,7 @@ bool CChar::CanUnderstandGhost() const
 
 bool CChar::IsPlayableCharacter() const
 {
-	return( IsHuman() || IsElf() || IsGargoyle() || IsVampire());
+	return( IsHuman() || IsElf() || IsGargoyle() || IsVampire() || IsHalfelin());
 }
 
 bool CChar::IsHuman() const
@@ -118,6 +118,11 @@ bool CChar::IsGargoyle() const
 bool CChar::IsVampire() const
 {
 	return(CCharBase::IsVampireID(GetDispID()));
+}
+
+bool CChar::IsHalfelin() const
+{
+    return(CCharBase::IsHalfelinID(GetDispID()));
 }
 
 CItemContainer * CChar::GetPack() const
@@ -621,6 +626,8 @@ lpctstr CChar::GetPronoun() const
 		case CREID_GARGGHOSTMAN:
 		case CREID_VAMPMAN:
 		case CREID_VAMPGHOSTMAN:
+        case CREID_HALFELINMAN:
+        case CREID_HALFELINGHOSTMAN:
 			return g_Cfg.GetDefaultMsg(DEFMSG_PRONOUN_HE);
 		case CREID_WOMAN:
 		case CREID_GHOSTWOMAN:
@@ -630,6 +637,8 @@ lpctstr CChar::GetPronoun() const
 		case CREID_GARGGHOSTWOMAN:
 		case CREID_VAMPWOMAN:
 		case CREID_VAMPGHOSTWOMAN:
+        case CREID_HALFELINWOMAN:
+        case CREID_HALFELINGHOSTWOMAN:
 			return g_Cfg.GetDefaultMsg(DEFMSG_PRONOUN_SHE);
 		default:
 			return g_Cfg.GetDefaultMsg(DEFMSG_PRONOUN_IT);
