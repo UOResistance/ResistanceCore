@@ -1072,6 +1072,7 @@ enum CTRIG_TYPE : short
     CTRIG_DelMulti,         // Delete the given multi to the CMultiStorage of this char (player).
 	CTRIG_Destroy,          // I am nearly destroyed.
 	CTRIG_Dismount,         // I'm dismounting.
+    CTRIG_DisplayName,      // Paperdoll and status is sent and I can change the display name
     CTRIG_Drink,            // I'm drinking something.
     CTRIG_DYE,
 	CTRIG_Eat,              // I'm eating something.
@@ -1170,6 +1171,7 @@ enum CTRIG_TYPE : short
     CTRIG_PayGold,          // I'm going to give out money for a service (Skill Training, hiring...).
 	CTRIG_PersonalSpace,	// i just got stepped on by other char.
 	CTRIG_PetDesert,        // I'm deserting from my owner ( starving, being hit by him ...).
+    CTRIG_PetRelease,       // I have been released by my owner.
 	CTRIG_Profile,			// someone hit the profile button for me.
 	CTRIG_ReceiveItem,		// I was just handed an item (Not yet checked if i want it).
 	CTRIG_RegenStat,		// Hits/mana/stam/food regeneration.

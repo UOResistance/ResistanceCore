@@ -97,7 +97,7 @@ bool CChar::CanUnderstandGhost() const
 
 bool CChar::IsPlayableCharacter() const
 {
-	return( IsHuman() || IsElf() || IsGargoyle() || IsVampire());
+	return( IsHuman() || IsElf() || IsGargoyle() || IsVampire() || IsHalfelin());
 }
 
 bool CChar::IsHuman() const
@@ -118,6 +118,11 @@ bool CChar::IsGargoyle() const
 bool CChar::IsVampire() const
 {
 	return(CCharBase::IsVampireID(GetDispID()));
+}
+
+bool CChar::IsHalfelin() const
+{
+    return(CCharBase::IsHalfelinID(GetDispID()));
 }
 
 CItemContainer * CChar::GetPack() const
@@ -491,13 +496,14 @@ int CChar::GetStatPercent(STAT_TYPE i) const
 	return IMulDiv(Stat_GetVal(i), 100, maxval);
 }
 
-
+[[nodiscard]] RETURNS_NOTNULL
 const CObjBaseTemplate* CChar::GetTopLevelObj() const
 {
 	// Get the object that has a location in the world. (Ground level)
 	return this;
 }
 
+[[nodiscard]] RETURNS_NOTNULL
 CObjBaseTemplate* CChar::GetTopLevelObj()
 {
 	// Get the object that has a location in the world. (Ground level)
@@ -621,6 +627,8 @@ lpctstr CChar::GetPronoun() const
 		case CREID_GARGGHOSTMAN:
 		case CREID_VAMPMAN:
 		case CREID_VAMPGHOSTMAN:
+        case CREID_HALFELINMAN:
+        case CREID_HALFELINGHOSTMAN:
 			return g_Cfg.GetDefaultMsg(DEFMSG_PRONOUN_HE);
 		case CREID_WOMAN:
 		case CREID_GHOSTWOMAN:
@@ -630,6 +638,8 @@ lpctstr CChar::GetPronoun() const
 		case CREID_GARGGHOSTWOMAN:
 		case CREID_VAMPWOMAN:
 		case CREID_VAMPGHOSTWOMAN:
+        case CREID_HALFELINWOMAN:
+        case CREID_HALFELINGHOSTWOMAN:
 			return g_Cfg.GetDefaultMsg(DEFMSG_PRONOUN_SHE);
 		default:
 			return g_Cfg.GetDefaultMsg(DEFMSG_PRONOUN_IT);
@@ -705,7 +715,7 @@ byte CChar::GetModeFlag( const CClient *pViewer ) const
         iFlags |= STATF_INVISIBLE;
 	
 	if ( IsStatFlag(iFlags) )	// Checking if I have any of these settings enabled on the ini and I have any of them, if so ... CHARMODE_INVIS is set and color applied.
-	mode |= CHARMODE_INVIS; //When sending CHARMODE_INVIS state to client, your character anim are grey
+        mode |= CHARMODE_INVIS; //When sending CHARMODE_INVIS state to client, your character anim are grey
 
 	return mode;
 }

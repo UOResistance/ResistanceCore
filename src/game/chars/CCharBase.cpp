@@ -537,7 +537,7 @@ bool CCharBase::IsValidDispID( CREID_TYPE id ) noexcept //  static
 
 bool CCharBase::IsPlayableID( CREID_TYPE id, bool bCheckGhost) noexcept
 {
-    return ( CCharBase::IsHumanID( id, bCheckGhost) || CCharBase::IsElfID( id, bCheckGhost) || CCharBase::IsGargoyleID( id, bCheckGhost) || CCharBase::IsVampireID(id, bCheckGhost));
+    return ( CCharBase::IsHumanID( id, bCheckGhost) || CCharBase::IsElfID( id, bCheckGhost) || CCharBase::IsGargoyleID( id, bCheckGhost) || CCharBase::IsVampireID(id, bCheckGhost) || CCharBase::IsHalfelinID(id, bCheckGhost));
 }
 
 bool CCharBase::IsHumanID( CREID_TYPE id, bool bCheckGhost ) noexcept // static
@@ -570,4 +570,12 @@ bool CCharBase::IsVampireID(CREID_TYPE id, bool bCheckGhost) noexcept // static
 		return(id == CREID_VAMPMAN || id == CREID_VAMPWOMAN || id == CREID_VAMPGHOSTMAN || id == CREID_VAMPGHOSTWOMAN);
 	else
 		return(id == CREID_VAMPMAN || id == CREID_VAMPWOMAN );
+}
+
+bool CCharBase::IsHalfelinID(CREID_TYPE id, bool bCheckGhost) noexcept // static
+{
+    if (bCheckGhost == true)
+        return(id == CREID_HALFELINMAN || id == CREID_HALFELINWOMAN || id == CREID_HALFELINGHOSTMAN || id == CREID_HALFELINGHOSTWOMAN);
+    else
+        return(id == CREID_HALFELINMAN || id == CREID_HALFELINWOMAN);
 }

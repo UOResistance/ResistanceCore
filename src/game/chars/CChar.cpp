@@ -71,6 +71,7 @@ lpctstr const CChar::sm_szTrigName[CTRIG_QTY+1] =	// static
     "@DelMulti",            // Removing a multi to the MultiStorage,
 	"@Destroy",				//+I am nearly destroyed
 	"@Dismount",			// I am trying to get rid of my ride right now
+    "@DisplayName",		    // Name Show on the paperdoll and status bar
     "@Drink",               // I am drinking something.
 	"@Dye",					// My color has been changed
 	"@Eat",
@@ -169,6 +170,7 @@ lpctstr const CChar::sm_szTrigName[CTRIG_QTY+1] =	// static
 	"@PayGold",             // I'm going to give out money for a service (Skill Training, hiring...).
 	"@PersonalSpace",		// +i just got stepped on by other char.
 	"@PetDesert",			// I just went wild again
+    "@PetRelease",			// I just been released by my master
 	"@Profile",				// someone hit the profile button for me.
 	"@ReceiveItem",			// I was just handed an item (Not yet checked if i want it)
 	"@RegenStat",			// Regenerating any stat
@@ -1591,7 +1593,7 @@ void CChar::SetID( CREID_TYPE id )
 	CCharBase * pCharDef = CCharBase::FindCharBase(id);
 	if ( pCharDef == nullptr )
 	{
-		if ( (id != (CREID_TYPE)-1) && (id != CREID_INVALID) )
+        if ( id != CREID_INVALID )
 			DEBUG_ERR(("Setting invalid char ID 0%x\n", id));
 
 		id = (CREID_TYPE)(g_Cfg.ResourceGetIndexType(RES_CHARDEF, "DEFAULTCHAR"));
@@ -1642,7 +1644,7 @@ void CChar::SetID( CREID_TYPE id )
 		if ( pHand )
 			GetPackSafe()->ContentAdd(pHand);
 	}
-	UpdateMode(nullptr, true);
+    UpdateMode(true, nullptr);
 }
 
 
@@ -2355,13 +2357,25 @@ do_default:
 
             if (strlen(ptcKey) == 11)
             {
+                // This returns the total current follower slots.
                 sVal.FormatSVal(GetCurFollowers());
                 return true;
             }
 
-            sVal.FormatVal(0);
+            sVal.SetValFalse();
             ptcKey += 11;
-            if (*ptcKey != '.' || m_followers.empty())
+            if (*ptcKey != '.')
+                return false;
+            ptcKey += 1;
+
+            if (!strnicmp(ptcKey, "CHARCOUNT", 9))
+            {
+                sVal.FormatSTVal(m_followers.size());
+                return true;
+            }
+
+            // Access objects by ID.
+            if (m_followers.empty())
                 return false;
 
             const uint uiIndex = Exp_GetUVal(ptcKey);
@@ -2371,6 +2385,12 @@ do_default:
             CChar* pCharArg = CUID::CharFindFromUID(m_followers[uiIndex].uid);
             if (!pCharArg)
                 return false;
+
+            if (*ptcKey == '\0')
+            {
+                sVal.SetValTrue();
+                return true;
+            }
 
             if (pCharArg->r_WriteVal(ptcKey, sVal, pSrc, fNoCallParent, fNoCallChildren))
                 return true;
@@ -2391,7 +2411,7 @@ do_default:
 					return true;
 				}
 
-				sVal.FormatVal(0);
+                sVal.SetValFalse();
 				ptcKey += 8;
 
 				if ( *ptcKey == '.' )
@@ -2513,7 +2533,7 @@ do_default:
 					return true;
 				}
 
-				sVal.FormatVal(0);
+                sVal.SetValFalse();
 				ptcKey += 8;
 
 				if ( *ptcKey == '.' )
@@ -2618,7 +2638,7 @@ do_default:
 					--i;
 				}
 
-				sVal = "0";
+                sVal.SetValFalse();
 				delete[] pszFameAt0;
 				return true;
 			}
@@ -2714,7 +2734,7 @@ do_default:
 					--i;
 				}
 
-				sVal = "0";
+                sVal.SetValFalse();
 				delete[] pszKarmaAt0;
 				return true;
 			}
@@ -2800,12 +2820,12 @@ do_default:
 					CResourceQtyArray Resources;
 					if ( Resources.Load(ptcKey) > 0 && SkillResourceTest( &Resources ) )
 					{
-						sVal.FormatVal(1);
+                        sVal.SetValTrue();
 						return true;
 					}
 				}
 			}
-			sVal.FormatVal(0);
+            sVal.SetValFalse();
 			return true;
 		case CHC_CANMOVE:
 			{
@@ -2828,7 +2848,7 @@ do_default:
 				if ( pItem )
 					sVal.FormatHex(pItem->m_itFigurine.m_UID);
 				else
-					sVal.FormatVal(0);
+                    sVal.SetValFalse();
 				return true;
 			}
 		case CHC_MOVE:
@@ -2874,7 +2894,7 @@ do_default:
 			if ( m_pPlayer != nullptr )
 				sVal = ( m_pParty != nullptr ) ? "1" : "0";
 			else
-				sVal = "0";
+                sVal.SetValFalse();
 			return true;
 		case CHC_ISMYPET:
 			if (!m_pNPC)
@@ -2892,7 +2912,7 @@ do_default:
 				sVal = IsDisconnected() ? "0" : "1";
 				return true;
 			}
-			sVal = "0";
+            sVal.SetValFalse();
 			return true;
 		case CHC_ISSTUCK:
 			{
@@ -3508,7 +3528,7 @@ bool CChar::r_LoadVal( CScript & s )
             if (!s.HasArgs())
                 return false;
 
-            if (!strnicmp(ptcKey, "DELETE", 6) || !strnicmp(ptcKey, "DEL", 3))
+            if (!strnicmp(ptcKey, "DELUID", 6))
             {
                 if (m_followers.empty())
                     return false;
@@ -3530,6 +3550,28 @@ bool CChar::r_LoadVal( CScript & s )
                         continue;
                     pChar->NPC_PetClearOwners();
                 }
+                return true;
+            }
+
+            if (!strnicmp(ptcKey, "DELINDEX", 6))
+            {
+                if (m_followers.empty())
+                    return false;
+
+                const uint uiIndex = s.GetArgUVal();
+                if (uiIndex >= m_followers.size())
+                    return false;
+
+                CChar *pChar = m_followers[uiIndex].uid.CharFind();
+                m_followers.erase(m_followers.begin() + uiIndex);
+
+                if (!pChar)
+                {
+                    g_Log.EventWarn("Follower with index %u is an invalid char! (Owner: 0%" PRIx32 ".)\n", uiIndex, GetUID().GetObjUID());
+                    return true;
+                }
+
+                pChar->NPC_PetClearOwners();
                 return true;
             }
 
@@ -3788,7 +3830,6 @@ bool CChar::r_LoadVal( CScript & s )
 				DIR_TYPE dir = static_cast<DIR_TYPE>(s.GetArgVal());
 				if (dir <= DIR_INVALID || dir >= DIR_QTY)
 					dir = DIR_SE;
-				m_dirFace = dir;
 				UpdateDir( dir );
 			}
 			break;
@@ -3816,8 +3857,16 @@ bool CChar::r_LoadVal( CScript & s )
 				break;
 			}
 			// Don't modify STATF_SAVEPARITY, STATF_PET, STATF_SPAWNED here
-			_uiStatFlag = (_uiStatFlag & (STATF_SAVEPARITY | STATF_PET | STATF_SPAWNED)) | (s.GetArgLLVal() & ~(STATF_SAVEPARITY | STATF_PET | STATF_SPAWNED));
-			NotoSave_Update();
+            static constexpr auto uiFlagsNoChange = (STATF_SAVEPARITY | STATF_PET | STATF_SPAWNED);
+            static constexpr auto uiFlagsRequireFullUpdate = (STATF_STONE | STATF_HIDDEN | STATF_DEAD);
+            const auto uiCurFlags = _uiStatFlag;
+            const auto uiNewFlags = s.GetArgULLVal();
+            _uiStatFlag = (_uiStatFlag & uiFlagsNoChange) | (uiNewFlags & ~uiFlagsNoChange);
+            if (uiCurFlags != uiNewFlags)
+            {
+                const bool fDoFullUpdate = (uiCurFlags & uiFlagsRequireFullUpdate) != (uiNewFlags & uiFlagsRequireFullUpdate);
+                NotoSave_Update(fDoFullUpdate);
+            }
 			break;
 		}
 		case CHC_FONT:
@@ -3970,7 +4019,7 @@ bool CChar::r_LoadVal( CScript & s )
 				StatFlag_Mod(STATF_STONE,fSet);
 				if ( fChange )
 				{
-					UpdateMode(nullptr, true);
+                    UpdateMode(true, nullptr);
 					if ( IsClientActive() )
 						m_pClient->addCharMove(this);
 				}
@@ -4163,10 +4212,14 @@ void CChar::r_Write( CScript & s )
     s.WriteKeyVal("OFAME", GetFame() );
 
 	int iVal;
-	if ((iVal = Stat_GetMod(STAT_FOOD)) != 0)
-		s.WriteKeyVal("MODFOOD", iVal);
+    //if ((iVal = Stat_GetMod(STAT_FOOD)) != 0)
+    //	s.WriteKeyVal("MODFOOD", iVal);
 	if ((iVal = Stat_GetBase(STAT_FOOD)) != Char_GetDef()->m_MaxFood)
 		s.WriteKeyVal("OFOOD", iVal);
+    if ((iVal = Stat_GetMaxMod(STAT_FOOD)) != 0)
+        s.WriteKeyVal("MODMAXFOOD", iVal);
+    if ((iVal = Stat_GetMax(STAT_FOOD)) != 0)
+        s.WriteKeyVal("MAXFOOD", iVal);
 	s.WriteKeyVal("FOOD", Stat_GetVal(STAT_FOOD));
 
 	static constexpr lpctstr _ptcKeyModStat[STAT_BASE_QTY] =
@@ -4182,7 +4235,7 @@ void CChar::r_Write( CScript & s )
 		"ODEX"
 	};
 
-	for (int j = 0; j < STAT_BASE_QTY; ++j)
+    for (int j = 0; j < STAT_BASE_QTY; ++j)
 	{
 		// this is VERY important, saving the MOD first
 		if ((iVal = Stat_GetMod((STAT_TYPE)j)) != 0)
@@ -4592,7 +4645,7 @@ bool CChar::r_Verb( CScript &s, CTextConsole * pSrc ) // Execute command from sc
 			if ( pSrc )
 			{
                 _uiStatFlag = s.GetArgLLFlag( _uiStatFlag, STATF_INSUBSTANTIAL );
-				UpdateMode(nullptr, true);
+                UpdateMode(true, nullptr);
 				if ( IsStatFlag(STATF_INSUBSTANTIAL) )
 				{
 					if ( IsClientActive() )
@@ -4879,7 +4932,7 @@ bool CChar::r_Verb( CScript &s, CTextConsole * pSrc ) // Execute command from sc
 			if ( ! IsPlayableCharacter())
 				return false;
 			SetHue( GetHue() ^ HUE_UNDERWEAR /*, false, pSrc*/ ); //call @Dye on underwear?
-			UpdateMode();
+            UpdateMode(true, nullptr);
 			break;
 		case CHV_UNEQUIP:	// uid
 			return ItemBounce( CUID::ItemFindFromUID(s.GetArgVal()) );
@@ -4995,7 +5048,7 @@ lbl_cchar_ontriggerspeech:
 }
 
 // Gaining exp
-uint Calc_ExpGet_Exp(uint level)
+static uint Calc_ExpGet_Exp(uint level)
 {
     if (level <= 1)
         return 0;
@@ -5015,7 +5068,7 @@ uint Calc_ExpGet_Exp(uint level)
 }
 
 // Increasing level
-uint Calc_ExpGet_Level(uint exp)
+static uint Calc_ExpGet_Level(uint exp)
 {
 	if (g_Cfg.m_iLevelNextAt < 1)	//Must do this check in case ini's LevelNextAt is not set or server will freeze because exp will never decrease in the while.
     {

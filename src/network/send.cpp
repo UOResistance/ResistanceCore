@@ -18,6 +18,7 @@
 #include "../game/uo_files/uofiles_enums_creid.h"
 #include "../game/CServer.h"
 #include "../game/CWorldGameTime.h"
+#include "../game/triggers.h"
 #include "CNetworkManager.h"
 #include "send.h"
 
@@ -127,14 +128,16 @@ PacketCombatDamage::PacketCombatDamage(const CClient* target, word damage, CUID 
  *
  *
  ***************************************************************************/
-PacketObjectStatus::PacketObjectStatus(const CClient* target, CObjBase* object) : PacketSend(XCMD_Status, 7, g_Cfg.m_fUsePacketPriorities? PRI_LOW : PRI_NORMAL)
+PacketObjectStatus::PacketObjectStatus(CClient* target, CObjBase* object) : PacketSend(XCMD_Status, 7, g_Cfg.m_fUsePacketPriorities? PRI_LOW : PRI_NORMAL)
 {
 	ADDTOCALLSTACK("PacketObjectStatus::PacketObjectStatus");
     ASSERT(object);
 
 	const CNetState * state = target->GetNetState();
-	const CChar *character = target->GetChar();
+
+	CChar *character = target->GetChar();
 	CChar *objectChar = object->IsChar() ? static_cast<CChar *>(object) : nullptr;
+
 	bool fCanRename = false;
 
 	byte version = 0;
@@ -142,7 +145,28 @@ PacketObjectStatus::PacketObjectStatus(const CClient* target, CObjBase* object) 
 	initLength();
 
 	writeInt32(object->GetUID());
-	writeStringFixedASCII(object->GetName(), 30);
+
+    bool bCustomName=0;
+    CSString sShowName;
+    if (objectChar != nullptr &&
+        objectChar->IsClientType() &&
+        IsTrigUsed(TRIGGER_DISPLAYNAME) &&
+        (objectChar != character)) //Avoid launch trigger if the target is the same character
+    {
+        CScriptTriggerArgs args;
+        args.m_s1 = object->GetName();
+        args.m_iN1 =2;//Trigger use on status
+        
+        if (objectChar->OnTrigger(CTRIG_DisplayName, character, &args) == TRIGRET_RET_TRUE)
+        {
+            bCustomName = 1;
+            sShowName = args.m_s1;
+        }
+    }
+    if (bCustomName)
+        writeStringFixedASCII(sShowName, 30);
+    else
+	    writeStringFixedASCII(object->GetName(), 30);
 
 	if (state->isClientVersionNumber(MINCLIVER_STATUS_V6))
 		version = 6;
@@ -199,7 +223,7 @@ PacketObjectStatus::PacketObjectStatus(const CClient* target, CObjBase* object) 
 		writeInt16(iHitsMax);		// Max hit points
 		writeBool(fCanRename);
 		writeByte(version);
-		if (state->isClientEnhanced() && objectChar && objectChar->IsPlayableCharacter())
+        if (state->isClientEnhanced() && objectChar && objectChar->IsClientType() /*objectChar->IsPlayableCharacter()*/)
 		{
 			// The Enhanced Client wants the char race and other things when showing paperdolls (otherwise the interface throws an "unnoticeable" internal error)
 			WriteVersionSpecific(target, objectChar, version);
@@ -211,7 +235,7 @@ PacketObjectStatus::PacketObjectStatus(const CClient* target, CObjBase* object) 
 
 void PacketObjectStatus::WriteVersionSpecific(const CClient* target, CChar* other, byte version)
 {
-    bool fElemental = IsSetCombatFlags(COMBAT_ELEMENTAL_ENGINE);
+    const bool fElemental = IsSetCombatFlags(COMBAT_ELEMENTAL_ENGINE);
 	const CCharBase * otherDefinition = other->Char_GetDef();
 	const CCPropsChar* pCCPChar = other->GetComponentProps<CCPropsChar>();
 	const CCPropsChar* pBaseCCPChar = otherDefinition->GetComponentProps<CCPropsChar>();
@@ -275,6 +299,12 @@ void PacketObjectStatus::WriteVersionSpecific(const CClient* target, CChar* othe
 		case CREID_VAMPGHOSTWOMAN:
 			writeByte(RACETYPE_VAMPIRE);
 			break;
+        case CREID_HALFELINMAN:
+        case CREID_HALFELINWOMAN:
+        case CREID_HALFELINGHOSTMAN:
+        case CREID_HALFELINGHOSTWOMAN:
+            writeByte(RACETYPE_HALFELIN);
+            break;
 		default:
 			writeByte(RACETYPE_UNDEFINED);
 			break;
@@ -2610,7 +2640,7 @@ PacketCharacterListUpdate::PacketCharacterListUpdate(CClient* target, const CCha
  *
  *
  ***************************************************************************/
-PacketPaperdoll::PacketPaperdoll(const CClient* target, const CChar* character) : PacketSend(XCMD_PaperDoll, 66, g_Cfg.m_fUsePacketPriorities? PRI_LOW : PRI_NORMAL)
+PacketPaperdoll::PacketPaperdoll(const CClient* target, CChar* character) : PacketSend(XCMD_PaperDoll, 66, g_Cfg.m_fUsePacketPriorities? PRI_LOW : PRI_NORMAL)
 {
 	ADDTOCALLSTACK("PacketPaperdoll::PacketPaperdoll");
 
@@ -2625,15 +2655,35 @@ PacketPaperdoll::PacketPaperdoll(const CClient* target, const CChar* character) 
 
 	writeInt32(character->GetUID());
 
+    bool bCustomName = 0;
+    CSString sShowName;
+
+
+    if (IsTrigUsed(TRIGGER_DISPLAYNAME) && (target->GetChar() != character)) //Avoid launch trigger if the target is the same character
+    {
+        CScriptTriggerArgs args;
+        args.m_s1 = character->GetName();
+        args.m_iN1 = 1;//Trigger use on paperdoll
+        if (character->OnTrigger(CTRIG_DisplayName, target->GetChar(), &args) == TRIGRET_RET_TRUE)
+        {
+            bCustomName = 1;
+            sShowName = args.m_s1;
+        }
+    }
+
 	if (character->IsStatFlag(STATF_INCOGNITO))
 	{
 		writeStringFixedASCII(character->GetName(), 60);
-	}
+    }
+    else if (bCustomName)
+    {
+        writeStringFixedASCII(sShowName, 60);
+    }
 	else
 	{
 		tchar* text = Str_GetTemp();
-		int len = 0;
 
+		int len = 0;
 		const CStoneMember* guildMember = character->Guild_FindMember(MEMORY_GUILD);
 		if (guildMember != nullptr && guildMember->IsAbbrevOn() && guildMember->GetParentStone()->GetAbbrev()[0])
 		{
@@ -2657,6 +2707,7 @@ PacketPaperdoll::PacketPaperdoll(const CClient* target, const CChar* character) 
 	}
 
 	writeByte((byte)mode);
+
 	push(target);
 }
 
