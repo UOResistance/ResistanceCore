@@ -387,15 +387,23 @@ enum CREID_TYPE	: uint32_t // enum the creature animations. (dont allow any othe
 	CREID_ELFGHOSTMAN		= 0x25F,
 	CREID_ELFGHOSTWOMAN		= 0x260,
 
+    //Custom NAIN
 	CREID_GARGMAN			= 0x29A, // 666 decimal
 	CREID_GARGWOMAN			= 0x29B,
 	CREID_GARGGHOSTMAN		= 0x2B6, // 694
 	CREID_GARGGHOSTWOMAN	= 0x2B7,
 
+    //Custom ORC
 	CREID_VAMPMAN = 0x2E8, // 744 decimal
 	CREID_VAMPWOMAN = 0x2E9,
 	CREID_VAMPGHOSTMAN = 0x2EE, // Ghost robe is not automatic !
 	CREID_VAMPGHOSTWOMAN = 0x2EF,
+
+    //Custom halfelin
+    CREID_HALFELINMAN = 0x1A4, // 420 decimal
+    CREID_HALFELINWOMAN = 0x1A5, //421
+    CREID_HALFELINGHOSTMAN = 0x1B8, //440
+    CREID_HALFELINGHOSTWOMAN = 0x1B9, //441
 
 	//..
 
